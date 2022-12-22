@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
-from .models import Room
+from django.db.models import Q
+from .models import Room, Topic
 from .forms import RoomForm
 
 #Allows you to display info like templates and models on page
@@ -11,8 +12,19 @@ from .forms import RoomForm
 #Outdated way of displaying info on home page, we now use Room.objects to access the model database rather than having to input here
 
 def home(request):
-    rooms = Room.objects.all #Objects allow you to access model database
-    context = {'rooms':rooms}
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+
+    rooms = Room.objects.filter(
+        Q(topic__name__icontains=q) |
+        Q(name__icontains=q) |
+        Q(description__icontains=q) 
+    ) #Allows you to use browse topics so that you can search specific topics
+    #Search using topic name OR name OR description
+
+    topics = Topic.objects.all() #Objects allow you to access model database
+    room_count= rooms.count()
+
+    context = {'rooms':rooms, 'topics':topics, 'room_count':room_count}
     return render(request, 'base/home.html',context)
 
 def room(request, pk):

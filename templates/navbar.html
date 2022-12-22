@@ -2,4 +2,9 @@
     <h1>Navbar</h1>
 </a>
 
+<!-- Used to create a search bar, q allows for it to be searched-->
+<form method="GET" action="{% url 'home' %}">
+    <input type="text" name="q" placeholder="Search Rooms..." />
+</form>
+
 <hr>

@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
+from django.http import HttpResponse
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
@@ -7,6 +9,10 @@ from .models import Room, Topic
 from .forms import RoomForm
 
 def loginPage(request):
+
+    #PREVENTS USER FROM RELOGING IN VIA THE URL 
+    if request.user.is_authenticated:
+        return redirect('home')
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -59,6 +65,7 @@ def room(request, pk):
 
 
 """ VIEWS FOR CRUD """
+@login_required(login_url='login') #Redirects User to login page if they try to access this form
 def createRoom(request):
     form = RoomForm()
 
@@ -72,9 +79,14 @@ def createRoom(request):
     context = {'form':form}
     return render(request, 'base/room_form.html', context)
 
+@login_required(login_url='login') #Redirects User to login page if they try to access this form
 def updateRoom(request, pk):
     room = Room.objects.get(id=pk)
     form = RoomForm(instance=room)
+
+    #STOPS DIFFERENT USERS FROM EDITING EACH OTHERS PAGES
+    if request.user != room.host: 
+        return HttpResponse("YOU SHALL NOT PASS!")
 
     if request.method == 'POST':
         form = RoomForm(request.POST, instance=room) #Allows it to update form via its ID
@@ -85,8 +97,14 @@ def updateRoom(request, pk):
     context = {'form':form}
     return render(request, 'base/room_form.html', context)
 
+@login_required(login_url='login') #Redirects User to login page if they try to access this form
 def deleteRoom(request, pk):
     room = Room.objects.get(id=pk)
+
+    #STOPS DIFFERENT USERS FROM EDITING EACH OTHERS PAGES
+    if request.user != room.host: 
+        return HttpResponse("YOU SHALL NOT PASS!")
+
     if request.method == "POST":
         room.delete()
         return redirect('home')

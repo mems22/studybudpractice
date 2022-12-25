@@ -6,9 +6,10 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
-from .models import Room, Topic
+from .models import Room, Topic, Message
 from .forms import RoomForm
 
+""" VIEWS FOR LOGGING IN, OUT AND REGISTRATION """
 def loginPage(request):
     page = 'login'
 
@@ -59,7 +60,10 @@ def registerPage(request):
             messages.error(request, 'An error occured during registration')
 
     return render (request, 'base/login_register.html',context)
+""" VIEWS FOR LOGGING IN, OUT AND REGISTRATION END """
 
+
+""" MAIN VIEWS """
 def home(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''
 
@@ -78,12 +82,30 @@ def home(request):
 
 def room(request, pk):
     room = Room.objects.get(id=pk) 
-    context = {'room':room}
+
+    #This basically asks the db to give us all the messages related to a particular room by most recent
+    room_messages = room.message_set.all().order_by('-created') 
+    participants = room.participants.all()
+
+    #CREATING MESSAGES IN A ROOM
+    if request.method == "POST":
+        message = Message.objects.create(
+            user = request.user,
+            room = room,
+            body = request.POST.get('body'),
+        )
+        room.participants.add(request.user)
+        return redirect('room', pk=room.id) #prevents reload under POST
+
+
+    context = {'room':room, 'room_messages':room_messages, 'participants':participants}
     return render(request, 'base/room.html', context)
+""" MAIN VIEWS END """
 
 
 
-""" VIEWS FOR CRUD """
+
+""" VIEWS FOR CRUD ROOMS """
 @login_required(login_url='login') #Redirects User to login page if they try to access this form
 def createRoom(request):
     form = RoomForm()
@@ -128,3 +150,20 @@ def deleteRoom(request, pk):
         room.delete()
         return redirect('home')
     return render(request, 'base/delete.html', {'obj':room})
+""" VIEWS FOR CRUD ROOMS END """
+
+
+
+
+""" VIEWS FOR CRUD MESSAGES """
+@login_required(login_url='login') #Redirects User to login page if they try to access this form
+def deleteMessage(request, pk):
+    message = Message.objects.get(id=pk)
+ 
+    if request.user != message.user: 
+        return HttpResponse("YOU CANNOT DELETE SUCH A MESSAGE")
+
+    if request.method == "POST":
+        message.delete()
+        return redirect('home')
+    return render(request, 'base/delete.html', {'obj': message})

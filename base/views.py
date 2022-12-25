@@ -28,14 +28,11 @@ def loginPage(request):
 
         user = authenticate(request, username=username, password=password)
 
-        
-
         if user is not None:
             login(request, user)
             return redirect('home')
         else:
-            messages.error(request, 'Username OR password does not exist')
-            
+            messages.error(request, 'Username OR password does not exist')    
         
     context={'page':page}
     return render(request, 'base/login_register.html', context)
@@ -63,6 +60,9 @@ def registerPage(request):
 """ VIEWS FOR LOGGING IN, OUT AND REGISTRATION END """
 
 
+
+
+
 """ MAIN VIEWS """
 def home(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''
@@ -75,16 +75,19 @@ def home(request):
     #Search using topic name OR name OR description
 
     topics = Topic.objects.all() #Objects allow you to access model database
-    room_count= rooms.count()
+    room_count = rooms.count()
+    room_messages = Message.objects.filter(Q(room__topic__name__icontains=q))
 
-    context = {'rooms':rooms, 'topics':topics, 'room_count':room_count}
+    context = {'rooms':rooms, 'topics':topics, 
+    'room_count':room_count, 'room_messages':room_messages}
+
     return render(request, 'base/home.html',context)
 
 def room(request, pk):
     room = Room.objects.get(id=pk) 
 
     #This basically asks the db to give us all the messages related to a particular room by most recent
-    room_messages = room.message_set.all().order_by('-created') 
+    room_messages = room.message_set.all()
     participants = room.participants.all()
 
     #CREATING MESSAGES IN A ROOM
@@ -101,6 +104,9 @@ def room(request, pk):
     context = {'room':room, 'room_messages':room_messages, 'participants':participants}
     return render(request, 'base/room.html', context)
 """ MAIN VIEWS END """
+
+
+
 
 
 
@@ -151,6 +157,8 @@ def deleteRoom(request, pk):
         return redirect('home')
     return render(request, 'base/delete.html', {'obj':room})
 """ VIEWS FOR CRUD ROOMS END """
+
+
 
 
 

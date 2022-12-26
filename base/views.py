@@ -126,35 +126,44 @@ def userProfile(request, pk):
 @login_required(login_url='login') #Redirects User to login page if they try to access this form
 def createRoom(request):
     form = RoomForm()
+    topics = Topic.objects.all()
 
     #IF STATEMENTS CHECK FOR WHEN SOMETHING IS SUBMITED, SAVES FORM DATA TO DATABASE AND REDIRECTS BACK HOME
     if request.method == 'POST':
-        form = RoomForm(request.POST)
-        if form.is_valid():
-            room = form.save(commit=False)
-            room.host = request.user
-            room.save()
-            return redirect('home') #keyword from name
+        topic_name = request.POST.get('topic')
+        topic, created = Topic.objects.get_or_create(name=topic_name)
 
-    context = {'form':form}
+        Room.objects.create(
+            host=request.user,
+            topic=topic,
+            name=request.POST.get('name'),
+            description=request.POST.get('description'),
+            )
+        return redirect('home') #keyword from name
+
+    context = {'form':form, 'topics':topics}
     return render(request, 'base/room_form.html', context)
 
 @login_required(login_url='login') #Redirects User to login page if they try to access this form
 def updateRoom(request, pk):
     room = Room.objects.get(id=pk)
     form = RoomForm(instance=room)
+    topics = Topic.objects.all()
 
     #STOPS DIFFERENT USERS FROM EDITING EACH OTHERS PAGES
     if request.user != room.host: 
         return HttpResponse("YOU SHALL NOT PASS!")
 
     if request.method == 'POST':
-        form = RoomForm(request.POST, instance=room) #Allows it to update form via its ID
-        if form.is_valid():
-            form.save()
-            return redirect('home') 
+        topic_name = request.POST.get('topic')
+        topic, created = Topic.objects.get_or_create(name=topic_name)
+        room.name = request.POST.get('name')
+        room.topic = topic
+        room.description = request.POST.get('description')
+        room.save()
+        return redirect('home') 
 
-    context = {'form':form}
+    context = {'form':form, 'topics':topics, 'room':room}
     return render(request, 'base/room_form.html', context)
 
 @login_required(login_url='login') #Redirects User to login page if they try to access this form
